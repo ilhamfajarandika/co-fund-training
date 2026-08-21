@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ChangePasswordRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
+use Illuminate\Auth\Events\Registered;
 
 class AuthController extends Controller
 {
@@ -17,15 +19,14 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role
+            'role' => $request->role ?? 'backer'
         ]);
+
+        event(new Registered($user));
 
         return response()->json([
             'success' => true,
-            'message' => 'Register Success',
-            'data' => [
-                'user' => $user
-            ]
+            'message' => 'Register Success. Please check your email to verify your account',
         ], 201);
     }
 
@@ -41,6 +42,13 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;
+
+        if (!$user->hasVerifiedEmail()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Please verify your email first."
+            ], 403);
+        }
 
         return response()->json([
             'success' => true,
@@ -67,6 +75,26 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => $request->user()
+        ]);
+    }
+
+    public function changePassword(ChangePasswordRequest $request)
+    {
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password saat ini tidak sesuai'
+            ], 422);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil diubah'
         ]);
     }
 }
