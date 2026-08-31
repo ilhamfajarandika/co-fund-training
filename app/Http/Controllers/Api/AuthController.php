@@ -6,68 +6,101 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ChangePasswordRequest;
-use App\Models\User;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Services\AuthService;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class AuthController extends Controller
 {
+
+    public function __construct(private AuthService $authService) {}
+
     public function register(RegisterRequest $request)
     {
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'backer'
-        ]);
+        try {
+            $result = $this->authService->register($request->validated());
 
-        event(new Registered($user));
+            event(new Registered($result));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Register Success. Please check your email to verify your account',
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Register Success. Please check your email to verify your account',
+                'data' => []
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ]);
+        }
     }
 
     public function login(LoginRequest $request)
     {
-        $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        try {
+            $result = $this->authService->login($request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Login Success',
+                'data' => [
+                    'user' => $result['data']['user'],
+                    'token' => $result['token'],
+                    'token_type' => 'Bearer'
+                ]
+            ]);
+        } catch (AuthenticationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email or Password Incorrect'
+                'message' => $e->getMessage()
             ], 401);
-        }
-
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        if (!$user->hasVerifiedEmail()) {
+        } catch (RuntimeException $e) {
             return response()->json([
                 'success' => false,
-                'message' => "Please verify your email first."
-            ], 403);
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 400);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Login failed: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login Success',
-            'data' => [
-                'user' => $user,
-                'token' => $token
-            ]
-        ]);
     }
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        try {
+            $this->authService->logout($request->user());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout Success'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout Success'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Logout failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function me(Request $request)
@@ -80,21 +113,62 @@ class AuthController extends Controller
 
     public function changePassword(ChangePasswordRequest $request)
     {
-        $user = $request->user();
+        try {
+            $this->authService->changePassword(
+                $request->user(),
+                $request->current_password,
+                $request->new_password
+            );
 
-        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil diubah'
+            ]);
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Password saat ini tidak sesuai'
+                'message' => $e->getMessage(),
+                'errors' => $e->errors()
             ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Change password failed: ' . $e->getMessage()
+            ], 500);
         }
+    }
 
-        $user->password = Hash::make($request->new_password);
-        $user->save();
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        try {
+            $message = $this->authService->sendPasswordResetLink($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Password berhasil diubah'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 400);
+        }
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        try {
+            $message = $this->authService->resetPassword($request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 400);
+        }
     }
 }

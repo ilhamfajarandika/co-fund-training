@@ -1,12 +1,15 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackingController;
+use App\Http\Controllers\Api\CampaignController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\ResetPasswordController;
+use App\Models\Campaign;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,13 +26,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Route::get('/ping', function () {
-//     return response()->json([
-//         'success' => true,
-//         'message' => 'API Crowdfunding berjalan'
-//     ]);
-// });
-
 
 Route::prefix('v1')->group(function () {
 
@@ -38,6 +34,8 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
     Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
+
+    Route::post('/');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
@@ -52,6 +50,43 @@ Route::prefix('v1')->group(function () {
                 'message' => 'Email verifikasi telah dikirim.'
             ]);
         })->middleware('throttle:6,1');
+
+        Route::apiResource('campaigns', CampaignController::class);
+
+        Route::post(
+            'campaigns/{campaign}/updates',
+            [CampaignController::class, 'storeUpdate']
+        );
+
+        Route::post(
+            'campaigns/{campaign}/approve',
+            [CampaignController::class, 'approve']
+        );
+
+        Route::post(
+            'campaigns/{campaign}/reject',
+            [CampaignController::class, 'reject']
+        );
+
+        Route::post(
+            'campaigns/{campaign}/tiers',
+            [CampaignController::class, 'storeTier']
+        );
+
+        Route::put(
+            'campaigns/{campaign}/tiers/{tier}',
+            [CampaignController::class, 'updateTier']
+        );
+
+        Route::delete(
+            'campaigns/{campaign}/tiers/{tier}',
+            [CampaignController::class, 'destroyTier']
+        );
+
+        Route::post(
+            'campaigns/{id}/back',
+            [BackingController::class, 'store']
+        );
 
         Route::get('/health', function () {
             return response()->json([
