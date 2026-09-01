@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Jobs\SendCampaignUpdateNotificationJob;
-use App\Models\CampaignTier;
 use App\Mail\CampaignApprovedMail;
 use App\Mail\CampaignRejectedMail;
 
@@ -47,16 +46,21 @@ class CampaignService
 
     public function getById($id, $user = null)
     {
-        $query = Campaign::with('user', 'images')->findOrFail($id);
+        $query = Campaign::with('user', 'images');
 
-        if (!$user || $user->role === 'backer') {
+        if ($user) {
+            if ($user->role === 'backer') {
+                $query->where('status', 'active');
+            } elseif ($user->role === 'creator') {
+                $query->where(function ($q) use ($user) {
+                    $q->where('status', 'active')->orWhere('user_id', $user->id);
+                });
+            }
+        } else {
             $query->where('status', 'active');
-        } elseif ($user->role === 'creator') {
-            $query->where(function ($q) use ($user) {
-                $q->where('status', 'active')
-                    ->orWhere('user_id', $user->id);
-            });
         }
+
+        return $query->findOrFail($id);
     }
 
     public function create(array $data, $user)
@@ -254,65 +258,5 @@ class CampaignService
         Mail::to($campaign->user->email)->send(new CampaignRejectedMail($campaign->fresh(), $rejectionNote));
 
         return $campaign->fresh();
-    }
-
-    /**
-     * Create campaign tier.
-     *
-     * @throws \RuntimeException
-     */
-    public function createTier(Campaign $campaign, User $user, array $data): CampaignTier
-    {
-        if ($campaign->user_id !== $user->id && $user->role !== 'admin') {
-            throw new \RuntimeException('Tidak memiliki izin untuk membuat tier.', 403);
-        }
-
-        if ($campaign->status !== 'draft' && $campaign->status !== 'review') {
-            throw new \RuntimeException('Tier hanya bisa dibuat saat campaign draft atau review.', 400);
-        }
-
-        return $campaign->tiers()->create($data);
-    }
-
-    /**
-     * Update campaign tier.
-     *
-     * @throws \RuntimeException
-     */
-    public function updateTier(CampaignTier $tier, User $user, array $data): CampaignTier
-    {
-        $campaign = $tier->campaign;
-
-        if ($campaign->user_id !== $user->id && $user->role !== 'admin') {
-            throw new \RuntimeException('Tidak memiliki izin untuk memperbarui tier.', 403);
-        }
-
-        if ($campaign->status !== 'draft' && $campaign->status !== 'review') {
-            throw new \RuntimeException('Tier hanya bisa diperbarui saat campaign draft atau review.', 400);
-        }
-
-        $tier->update($data);
-
-        return $tier->fresh();
-    }
-
-    /**
-     * Delete campaign tier.
-     *
-     * @throws \RuntimeException
-     */
-    public function deleteTier(CampaignTier $tier, User $user): void
-    {
-        $campaign = $tier->campaign;
-
-        if ($campaign->user_id !== $user->id && $user->role !== 'admin') {
-            throw new \RuntimeException('Tidak memiliki izin untuk menghapus tier.', 403);
-        }
-
-        if ($campaign->status !== 'draft' && $campaign->status !== 'review') {
-            throw new \RuntimeException('Tier hanya bisa dihapus saat campaign draft atau review.', 400);
-        }
-
-        $tier->delete();
     }
 }

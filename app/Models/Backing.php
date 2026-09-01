@@ -29,4 +29,9 @@ class Backing extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function tier()
+    {
+        return $this->belongsTo(CampaignTier::class);
+    }
 }

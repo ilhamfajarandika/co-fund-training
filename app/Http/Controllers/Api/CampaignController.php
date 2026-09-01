@@ -9,18 +9,18 @@ use App\Http\Requests\Campaign\StoreCampaignTierRequest;
 use App\Http\Requests\Campaign\StoreCampaignUpdateRequest;
 use App\Http\Requests\Campaign\UpdateCampaignRequest;
 use App\Http\Requests\Campaign\UpdateCampaignTierRequest;
+use App\Http\Resources\TierResource;
 use App\Models\Campaign;
 use App\Models\CampaignTier;
 use App\Services\CampaignService;
+use App\Services\TierService;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 class CampaignController extends Controller
 {
-    public function __construct(private CampaignService $campaignService) {}
+    public function __construct(private CampaignService $campaignService, private TierService $tierService) {}
 
     /**
      * Display a listing of the resource.
@@ -189,12 +189,33 @@ class CampaignController extends Controller
     }
 
     /**
+     * List campaign tiers.
+     */
+    public function listTiers(Campaign $campaign)
+    {
+        try {
+            $tiers = $this->tierService->getByCampaign($campaign);
+
+            return response()->json([
+                'success' => true,
+                'data' => TierResource::collection($tiers)
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Store campaign tier.
      */
     public function storeTier(StoreCampaignTierRequest $request, Campaign $campaign)
     {
         try {
-            $tier = $this->campaignService->createTier(
+            $tier = $this->tierService->create(
                 $campaign,
                 $request->user(),
                 $request->validated()
@@ -225,7 +246,7 @@ class CampaignController extends Controller
     public function updateTier(UpdateCampaignTierRequest $request, Campaign $campaign, CampaignTier $tier)
     {
         try {
-            $updated = $this->campaignService->updateTier(
+            $updated = $this->tierService->update(
                 $tier,
                 $request->user(),
                 $request->validated()
@@ -256,7 +277,7 @@ class CampaignController extends Controller
     public function destroyTier(Request $request, Campaign $campaign, CampaignTier $tier)
     {
         try {
-            $this->campaignService->deleteTier($tier, $request->user());
+            $this->tierService->delete($tier, $request->user());
 
             return response()->json([
                 'success' => true,

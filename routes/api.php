@@ -73,6 +73,11 @@ Route::prefix('v1')->group(function () {
             [CampaignController::class, 'storeTier']
         );
 
+        Route::get(
+            'campaigns/{campaign}/tiers',
+            [CampaignController::class, 'listTiers']
+        );
+
         Route::put(
             'campaigns/{campaign}/tiers/{tier}',
             [CampaignController::class, 'updateTier']
@@ -86,6 +91,11 @@ Route::prefix('v1')->group(function () {
         Route::post(
             'campaigns/{id}/back',
             [BackingController::class, 'store']
+        );
+
+        Route::get(
+            'my-backings',
+            [BackingController::class, 'index']
         );
 
         Route::get('/health', function () {

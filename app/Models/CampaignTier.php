@@ -23,4 +23,9 @@ class CampaignTier extends Model
     {
         return $this->belongsTo(Campaign::class);
     }
+
+    public function backings()
+    {
+        return $this->hasMany(Backing::class);
+    }
 }

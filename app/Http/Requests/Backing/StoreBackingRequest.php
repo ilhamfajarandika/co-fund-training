@@ -22,14 +22,16 @@ class StoreBackingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => 'required|numeric|min:10000'
+            'amount' => 'required|numeric|min:10000',
+            'tier_id' => 'nullable|exists:campaign_tiers,id',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'amount.min' => 'Minimal donasi Rp10.000.'
+            'amount.min' => 'Minimal donasi Rp10.000.',
+            'tier_id.exists' => 'Tier tidak valid.',
         ];
     }
 }

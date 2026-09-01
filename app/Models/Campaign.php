@@ -25,7 +25,8 @@ class Campaign extends Model
     protected $casts = [
         'deadline' => 'datetime',
         'target_amount' => 'decimal:2',
-        'current_amount' => 'decimal:2'
+        'current_amount' => 'decimal:2',
+        'collected_amount' => 'decimal:2'
     ];
 
     public function user()
