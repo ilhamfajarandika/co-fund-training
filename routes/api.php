@@ -98,6 +98,16 @@ Route::prefix('v1')->group(function () {
             [BackingController::class, 'index']
         );
 
+        Route::post(
+            'campaigns/{campaign}/disburse',
+            [CampaignController::class, 'disburse']
+        );
+
+        Route::post(
+            'campaigns/{campaign}/refund',
+            [CampaignController::class, 'refund']
+        );
+
         Route::get('/health', function () {
             return response()->json([
                 'success' => true,

@@ -10,6 +10,8 @@ use App\Http\Requests\Campaign\StoreCampaignUpdateRequest;
 use App\Http\Requests\Campaign\UpdateCampaignRequest;
 use App\Http\Requests\Campaign\UpdateCampaignTierRequest;
 use App\Http\Resources\TierResource;
+use App\Jobs\DisburseCampaignJob;
+use App\Jobs\RefundBackersJob;
 use App\Models\Campaign;
 use App\Models\CampaignTier;
 use App\Services\CampaignService;
@@ -282,6 +284,66 @@ class CampaignController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Tier berhasil dihapus.'
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode());
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Disburse campaign funds to creator.
+     */
+    public function disburse(Request $request, Campaign $campaign)
+    {
+        try {
+            if ($campaign->status !== 'success') {
+                throw new RuntimeException('Campaign belum mencapai target atau belum berhasil.', 400);
+            }
+
+            DisburseCampaignJob::dispatch($campaign);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Proses pencairan dana sedang diproses.'
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], $e->getCode());
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Refund all backers for a campaign.
+     */
+    public function refund(Request $request, Campaign $campaign)
+    {
+        try {
+            if ($campaign->status !== 'failed') {
+                throw new RuntimeException('Campaign belum gagal, refund hanya bisa dilakukan untuk campaign yang gagal.', 400);
+            }
+
+            RefundBackersJob::dispatch($campaign);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Proses refund sedang diproses.'
             ]);
         } catch (RuntimeException $e) {
             return response()->json([
