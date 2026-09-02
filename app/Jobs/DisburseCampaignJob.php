@@ -36,6 +36,16 @@ class DisburseCampaignJob implements ShouldQueue
             return;
         }
 
+        // Idempotency check: prevent double disbursement
+        $hasDisbursement = DB::table('transactions')
+            ->where('campaign_id', $campaign->id)
+            ->where('type', 'disbursement')
+            ->exists();
+
+        if ($hasDisbursement) {
+            return;
+        }
+
         DB::beginTransaction();
 
         try {

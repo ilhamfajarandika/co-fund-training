@@ -49,6 +49,16 @@ class RefundBackersJob implements ShouldQueue
                     continue;
                 }
 
+                // Idempotency check: prevent double refund
+                $hasRefund = DB::table('transactions')
+                    ->where('backing_id', $backing->id)
+                    ->where('type', 'refund')
+                    ->exists();
+
+                if ($hasRefund) {
+                    continue;
+                }
+
                 $backer->increment('balance', $backing->amount);
 
                 Transaction::create([

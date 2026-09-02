@@ -5,11 +5,13 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
-
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\DB;
 
 class AuthService
 {
@@ -73,7 +75,7 @@ class AuthService
         $user->currentAccessToken()->delete();
     }
 
-    public function changePassword(User $user, string $currentPassword, string $newPasswrod): void
+    public function changePassword(User $user, string $currentPassword, string $newPassword): void
     {
         if (!Hash::check($currentPassword, $user->password)) {
             throw new ValidationException(
@@ -82,7 +84,7 @@ class AuthService
             );
         }
 
-        $user->password = Hash::make($newPasswrod);
+        $user->password = Hash::make($newPassword);
         $user->save();
     }
 

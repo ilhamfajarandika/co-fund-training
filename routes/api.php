@@ -10,6 +10,7 @@ use Illuminate\Auth\Events\Verified;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\ResetPasswordController;
 use App\Models\Campaign;
+use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -108,6 +109,30 @@ Route::prefix('v1')->group(function () {
             [CampaignController::class, 'refund']
         );
 
+        Route::post(
+            'campaigns/check-expired',
+            function (\Illuminate\Http\Request $request) {
+                Artisan::call('campaign:check-expired');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Check expired campaigns executed.',
+                    'output' => Artisan::output()
+                ]);
+            }
+        );
+
+        Route::post(
+            'campaigns/notify-deadline',
+            function (\Illuminate\Http\Request $request) {
+                Artisan::call('campaign:notify-deadline');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Notify deadline approaching executed.',
+                    'output' => Artisan::output()
+                ]);
+            }
+        );
+
         Route::get('/health', function () {
             return response()->json([
                 'success' => true,
@@ -116,29 +141,6 @@ Route::prefix('v1')->group(function () {
             ]);
         });
     });
-
-    /*
-    |--------------------------------------------------------------------------
-    | Future Routes: Campaign & Backing (Require Email Verified)
-    |--------------------------------------------------------------------------
-    | Gunakan middleware ['auth:sanctum', 'verified'] untuk route yang
-    | hanya bisa diakses user yang sudah login DAN email terverifikasi.
-    |
-    | Contoh:
-    | Route::middleware(['auth:sanctum', 'verified'])->group(function () {
-    |     // Creator only - buat/edit/hapus campaign
-    |     Route::post('/campaigns', [CampaignController::class, 'store']);
-    |     Route::put('/campaigns/{id}', [CampaignController::class, 'update']);
-    |     Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy']);
-    |
-    |     // Backer only - backing campaign
-    |     Route::post('/campaigns/{id}/back', [BackingController::class, 'store']);
-    |     Route::get('/my-backings', [BackingController::class, 'index']);
-    | });
-    |
-    | Middleware 'verified' = \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class
-    | Return 403 jika user belum verifikasi email.
-    */
 
     Route::get('/email/verify/{id}/{hash}', function ($id, $hash, Request $request) {
 

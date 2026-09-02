@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('campaigns:process-endings')->dailyAt('00:00');
+        $schedule->command('campaign:check-expired')->dailyAt('00:05');
+        $schedule->command('campaign:notify-deadline')->dailyAt('00:05');
     }
 
     /**
