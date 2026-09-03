@@ -5,13 +5,12 @@ namespace App\Services;
 use App\Models\Campaign;
 use App\Models\CampaignUpdate;
 use App\Models\User;
+use App\Notifications\CampaignApprovedNotification;
+use App\Notifications\CampaignRejectedNotification;
+use App\Jobs\SendCampaignUpdateNotificationJob;
 use Exception;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Jobs\SendCampaignUpdateNotificationJob;
-use App\Mail\CampaignApprovedMail;
-use App\Mail\CampaignRejectedMail;
 
 class CampaignService
 {
@@ -228,7 +227,7 @@ class CampaignService
             'reviewed_at' => now(),
         ]);
 
-        Mail::to($campaign->user->email)->send(new CampaignApprovedMail($campaign->fresh()));
+        $campaign->user->notify(new CampaignApprovedNotification($campaign->fresh()));
 
         return $campaign->fresh();
     }
@@ -255,7 +254,7 @@ class CampaignService
             'reviewed_at' => now(),
         ]);
 
-        Mail::to($campaign->user->email)->send(new CampaignRejectedMail($campaign->fresh(), $rejectionNote));
+        $campaign->user->notify(new CampaignRejectedNotification($campaign->fresh(), $rejectionNote));
 
         return $campaign->fresh();
     }

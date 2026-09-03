@@ -2,17 +2,15 @@
 
 namespace App\Jobs;
 
-use App\Mail\CampaignDisbursedMail;
 use App\Models\Campaign;
 use App\Models\Transaction;
+use App\Notifications\CampaignSuccessNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 
 class DisburseCampaignJob implements ShouldQueue
 {
@@ -79,7 +77,6 @@ class DisburseCampaignJob implements ShouldQueue
             throw $e;
         }
 
-        Mail::to(new Address($creator->email, $creator->name))
-            ->send(new CampaignDisbursedMail($campaign->fresh(), $platformFee, $creatorReceive));
+        $creator->notify(new CampaignSuccessNotification($campaign->fresh(), $platformFee, $creatorReceive));
     }
 }

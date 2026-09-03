@@ -2,18 +2,16 @@
 
 namespace App\Jobs;
 
-use App\Mail\CampaignRefundedMail;
 use App\Models\Backing;
 use App\Models\Campaign;
 use App\Models\Transaction;
+use App\Notifications\CampaignRefundNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 
 class RefundBackersJob implements ShouldQueue
 {
@@ -75,8 +73,7 @@ class RefundBackersJob implements ShouldQueue
                     'status' => 'refunded',
                 ]);
 
-                Mail::to(new Address($backer->email, $backer->name))
-                    ->send(new CampaignRefundedMail($campaign->fresh(), $backing->amount));
+                $backer->notify(new CampaignRefundNotification($campaign->fresh(), $backing->amount));
             }
 
             $campaign->update([

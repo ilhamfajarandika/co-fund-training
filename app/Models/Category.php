@@ -5,18 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class CampaignUpdate extends Model
+class Category extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'campaign_id',
-        'title',
-        'content',
+        'name',
+        'slug',
     ];
 
-    public function campaign()
+    public function campaigns()
     {
-        return $this->belongsTo(Campaign::class);
+        return $this->hasMany(Campaign::class);
     }
 }

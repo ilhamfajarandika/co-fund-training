@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Jobs\SendDonationNotificationJob;
 use App\Models\Backing;
 use App\Models\Campaign;
 use App\Models\CampaignTier;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Notifications\BackingConfirmedNotification;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -104,7 +104,8 @@ class BackingService
             throw $e;
         }
 
-        SendDonationNotificationJob::dispatch($backing);
+        $backing->user->notify(new BackingConfirmedNotification($backing, true));
+        $backing->campaign->user->notify(new BackingConfirmedNotification($backing, false));
 
         return $backing->load('tier', 'campaign', 'user');
     }

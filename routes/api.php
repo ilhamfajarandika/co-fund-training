@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\ResetPasswordController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Models\Campaign;
 use Illuminate\Support\Facades\Artisan;
 
@@ -107,6 +108,26 @@ Route::prefix('v1')->group(function () {
         Route::post(
             'campaigns/{campaign}/refund',
             [CampaignController::class, 'refund']
+        );
+
+        Route::get(
+            'notifications',
+            [NotificationController::class, 'index']
+        );
+
+        Route::get(
+            'notifications/unread-count',
+            [NotificationController::class, 'unreadCount']
+        );
+
+        Route::patch(
+            'notifications/{id}/read',
+            [NotificationController::class, 'markAsRead']
+        );
+
+        Route::patch(
+            'notifications/read-all',
+            [NotificationController::class, 'markAllAsRead']
         );
 
         Route::post(

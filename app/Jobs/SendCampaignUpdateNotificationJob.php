@@ -3,13 +3,12 @@
 namespace App\Jobs;
 
 use App\Models\CampaignUpdate;
+use App\Notifications\CampaignUpdateNotification;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Mail\CampaignUpdateMail;
 
 class SendCampaignUpdateNotificationJob implements ShouldQueue
 {
@@ -33,9 +32,8 @@ class SendCampaignUpdateNotificationJob implements ShouldQueue
             ->unique('id');
 
         foreach ($backers as $backer) {
-            if ($backer && $backer->email) {
-                \Mail::to(new Address($backer->email, $backer->name))
-                    ->send(new CampaignUpdateMail($this->update));
+            if ($backer) {
+                $backer->notify(new CampaignUpdateNotification($this->update));
             }
         }
     }
